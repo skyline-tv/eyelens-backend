@@ -1,0 +1,13 @@
+# Local MongoDB — run from this directory: docker compose up -d
+# Use MONGO_URI=mongodb://127.0.0.1:27017/eyelens in .env
+services:
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - eyelens_mongo_data:/data/db
+
+volumes:
+  eyelens_mongo_data:

@@ -1,0 +1,27 @@
+# Production: API + MongoDB. Build storefront/admin in their own repos; serve static files with nginx (see deploy/).
+#
+# From this directory:
+#   1. .env → MONGO_URI=mongodb://mongo:27017/eyelens, NODE_ENV=production, CLIENT_URLS=https://...
+#   2. docker compose -f docker-compose.prod.yml up -d --build
+#
+services:
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    volumes:
+      - eyelens_mongo_prod:/data/db
+
+  api:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:5000:5000"
+    env_file:
+      - .env
+    depends_on:
+      - mongo
+    volumes:
+      - ./uploads:/app/uploads
+
+volumes:
+  eyelens_mongo_prod:
