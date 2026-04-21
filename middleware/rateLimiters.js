@@ -6,9 +6,20 @@ const H1 = 60 * 60 * 1000;
 
 export const apiGeneralLimiter = rateLimit({
   windowMs: M15,
-  max: 100,
+  max: 300,
   standardHeaders: true,
   legacyHeaders: false,
+  skip: (req) => {
+    const p = String(req.path || "");
+    if (req.method === "POST" && p === "/orders") return true;
+    if (req.method !== "GET") return false;
+    return (
+      p === "/health" ||
+      p === "/products" ||
+      p.startsWith("/products/") ||
+      p === "/banners"
+    );
+  },
   message: { success: false, message: "Too many requests. Please try again later.", data: null },
 });
 
@@ -60,4 +71,13 @@ export const newsletterSubscribeLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: { success: false, message: "Too many sign-up attempts. Please try again later.", data: null },
+});
+
+/** Order creation limiter (separate from general API limiter). */
+export const orderCreateLimiter = rateLimit({
+  windowMs: M15,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: "Too many order attempts. Please try again later.", data: null },
 });

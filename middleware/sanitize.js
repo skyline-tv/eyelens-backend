@@ -13,6 +13,22 @@ export function sanitizeProductBody(req, res, next) {
     if (req.body.name != null) req.body.name = stripHtmlText(req.body.name);
     if (req.body.description != null) req.body.description = stripHtmlText(req.body.description);
     if (req.body.brand != null) req.body.brand = stripHtmlText(req.body.brand);
+    if (Array.isArray(req.body.images)) {
+      req.body.images = req.body.images.map((img) => stripHtmlText(img)).filter(Boolean);
+    }
+    if (Array.isArray(req.body.colors)) {
+      req.body.colors = req.body.colors.map((color) => {
+        if (!color || typeof color !== "object") return color;
+        return {
+          ...color,
+          name: color.name != null ? stripHtmlText(color.name) : "",
+          hex: color.hex != null ? stripHtmlText(color.hex) : "",
+          images: Array.isArray(color.images)
+            ? color.images.map((img) => stripHtmlText(img)).filter(Boolean)
+            : [],
+        };
+      });
+    }
   }
   next();
 }

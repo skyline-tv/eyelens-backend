@@ -11,6 +11,42 @@ function escapeRegex(s) {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
+function normalizeImageList(value) {
+  if (!Array.isArray(value)) return [];
+  return [...new Set(value.map((x) => String(x || "").trim()).filter(Boolean))].slice(0, 20);
+}
+
+function normalizeColors(value) {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((entry) => {
+      if (!entry) return null;
+      if (typeof entry === "string") {
+        const name = String(entry).trim();
+        if (!name) return null;
+        return { name, hex: "", images: [] };
+      }
+      const name = String(entry.name || "").trim();
+      if (!name) return null;
+      const hex = String(entry.hex || "").trim();
+      const images = normalizeImageList(entry.images);
+      return { name, hex, images };
+    })
+    .filter(Boolean)
+    .slice(0, 20);
+}
+
+function normalizeProductPayload(payload) {
+  const body = { ...(payload || {}) };
+  if ("images" in body) {
+    body.images = normalizeImageList(body.images);
+  }
+  if ("colors" in body) {
+    body.colors = normalizeColors(body.colors);
+  }
+  return body;
+}
+
 /** GET /api/products — optional: category, gender, frameType, minPrice, maxPrice, sort, search, brand */
 export async function listProducts(req, res, next) {
   try {
@@ -114,7 +150,7 @@ export async function getProduct(req, res, next) {
 
 export async function createProduct(req, res, next) {
   try {
-    const product = await Product.create(req.body);
+    const product = await Product.create(normalizeProductPayload(req.body));
     invalidateProductsCache();
     res.status(201).json({ success: true, message: "Product created", data: product });
   } catch (err) {
@@ -127,7 +163,7 @@ export async function updateProduct(req, res, next) {
     if (!mongoose.isValidObjectId(req.params.id)) {
       return res.status(400).json({ success: false, message: "Invalid product id" });
     }
-    const body = { ...req.body };
+    const body = normalizeProductPayload(req.body);
     let update = body;
     if ("origPrice" in body && (body.origPrice === null || body.origPrice === "")) {
       delete body.origPrice;

@@ -18,6 +18,13 @@ const productSchema = new mongoose.Schema(
     brand: { type: String, required: true, trim: true },
     price: { type: Number, required: true, min: 0 },
     images: [{ type: String }],
+    colors: [
+      {
+        name: { type: String, trim: true, default: "" },
+        hex: { type: String, trim: true, default: "" },
+        images: [{ type: String }],
+      },
+    ],
     category: { type: String, default: "General", trim: true },
     stock: { type: Number, default: 0, min: 0 },
     /** Reserved for future cart-hold flows */

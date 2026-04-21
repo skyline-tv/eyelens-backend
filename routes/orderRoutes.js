@@ -3,6 +3,7 @@ import { authenticate } from "../middleware/auth.js";
 import { requireRole } from "../middleware/role.js";
 import { validate } from "../middleware/validate.js";
 import { placeOrderRules } from "../validators/orderValidators.js";
+import { orderCreateLimiter } from "../middleware/rateLimiters.js";
 import {
   createOrder,
   myOrders,
@@ -20,7 +21,7 @@ const router = Router();
 router.get("/my", authenticate, myOrders);
 router.get("/returns", authenticate, requireRole("admin"), listReturnRequests);
 
-router.post("/", authenticate, placeOrderRules, validate, createOrder);
+router.post("/", orderCreateLimiter, authenticate, placeOrderRules, validate, createOrder);
 
 router.get("/:id/invoice", authenticate, streamOrderInvoice);
 router.post("/:id/return", authenticate, requestReturn);
