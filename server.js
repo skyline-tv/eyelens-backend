@@ -36,10 +36,47 @@ const app = express();
 const PORT = process.env.PORT || 5001;
 const defaultOrigins = "http://localhost:3000,http://localhost:3001";
 const rawOrigins = process.env.CLIENT_URLS || process.env.CLIENT_URL || defaultOrigins;
-let allowedOrigins = rawOrigins.split(",").map((s) => s.trim()).filter(Boolean);
-if (allowedOrigins.length === 0) {
-  allowedOrigins = defaultOrigins.split(",").map((s) => s.trim()).filter(Boolean);
+const normalizeOrigin = (value) => {
+  const trimmed = String(value || "").trim();
+  if (!trimmed) return "";
+  try {
+    const url = new URL(trimmed);
+    const port = url.port ? `:${url.port}` : "";
+    return `${url.protocol}//${url.hostname}${port}`;
+  } catch {
+    return trimmed.replace(/\/+$/, "");
+  }
+};
+const expandOriginVariants = (origin) => {
+  const normalized = normalizeOrigin(origin);
+  if (!normalized) return [];
+  try {
+    const url = new URL(normalized);
+    const host = url.hostname;
+    const isLocal =
+      host === "localhost" || host === "127.0.0.1" || host === "::1";
+    const hostParts = host.split(".");
+    const canToggleWww = !isLocal && hostParts.length >= 2;
+    if (!canToggleWww) return [normalized];
+
+    const baseHost = host.startsWith("www.") ? host.slice(4) : host;
+    const variants = [baseHost, `www.${baseHost}`];
+    return variants.map((variantHost) => {
+      const variantUrl = new URL(normalized);
+      variantUrl.hostname = variantHost;
+      return normalizeOrigin(variantUrl.toString());
+    });
+  } catch {
+    return [normalized];
+  }
+};
+let configuredOrigins = rawOrigins.split(",").map((s) => s.trim()).filter(Boolean);
+if (configuredOrigins.length === 0) {
+  configuredOrigins = defaultOrigins.split(",").map((s) => s.trim()).filter(Boolean);
 }
+const allowedOrigins = new Set(
+  configuredOrigins.flatMap((origin) => expandOriginVariants(origin))
+);
 const isProd = process.env.NODE_ENV === "production";
 
 app.set("trust proxy", 1);
@@ -65,7 +102,7 @@ app.use(
         if (isProd) return callback(null, false);
         return callback(null, true);
       }
-      if (allowedOrigins.includes(origin)) return callback(null, true);
+      if (allowedOrigins.has(normalizeOrigin(origin))) return callback(null, true);
       return callback(null, false);
     },
     credentials: true,
