@@ -138,3 +138,43 @@ export async function verifyRazorpayPayment(req, res, next) {
     next(err);
   }
 }
+
+/**
+ * POST /api/payments/fail
+ * Body: orderId (Eyelens), optional razorpay_order_id
+ */
+export async function markRazorpayPaymentFailed(req, res, next) {
+  try {
+    const { orderId, razorpay_order_id } = req.body || {};
+    if (!orderId) {
+      return res.status(400).json({ success: false, message: "orderId required", data: null });
+    }
+
+    const order = await Order.findById(orderId);
+    if (!order) return res.status(404).json({ success: false, message: "Order not found", data: null });
+    if (String(order.user) !== String(req.user.id)) {
+      return res.status(403).json({ success: false, message: "Not allowed", data: null });
+    }
+    if (order.paymentMethod !== "razorpay") {
+      return res.status(400).json({ success: false, message: "Order is not an online payment order", data: null });
+    }
+    if (order.paymentStatus === "paid") {
+      return res.status(400).json({ success: false, message: "Order already paid", data: null });
+    }
+
+    const incomingRzpOrderId = String(razorpay_order_id || "").trim();
+    if (incomingRzpOrderId) {
+      if (order.razorpayOrderId && order.razorpayOrderId !== incomingRzpOrderId) {
+        return res.status(400).json({ success: false, message: "Payment does not match this order", data: null });
+      }
+      order.razorpayOrderId = incomingRzpOrderId;
+    }
+
+    order.paymentStatus = "failed";
+    await order.save();
+
+    res.json({ success: true, message: "Payment marked failed", data: { orderId: order._id } });
+  } catch (err) {
+    next(err);
+  }
+}

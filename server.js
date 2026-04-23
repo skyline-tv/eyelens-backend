@@ -1,7 +1,7 @@
-import "dotenv/config";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
+import dotenv from "dotenv";
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
@@ -27,6 +27,21 @@ import { apiGeneralLimiter } from "./middleware/rateLimiters.js";
 import { getHealthReport } from "./utils/healthReport.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const envPath = path.join(__dirname, ".env");
+const dotenvResult = dotenv.config({ path: envPath, override: true });
+const parsedEnvKeys = Object.keys(dotenvResult.parsed || {});
+if (dotenvResult.error) {
+  console.error("[env] dotenv load error:", dotenvResult.error.message);
+}
+console.log(
+  `[env] loaded=${dotenvResult.error ? "no" : "yes"} path=${envPath} parsed_keys=${parsedEnvKeys.length} mongo_uri_present=${
+    process.env.MONGO_URI ? "yes" : "no"
+  }`
+);
+if (!process.env.MONGO_URI && process.env.NODE_ENV !== "production") {
+  process.env.MONGO_URI = "mongodb://127.0.0.1:27017/eyelens";
+  console.warn("[env] MONGO_URI missing; using local default mongodb://127.0.0.1:27017/eyelens");
+}
 const uploadsDir = path.join(__dirname, "uploads");
 for (const sub of ["products", "reviews"]) {
   fs.mkdirSync(path.join(uploadsDir, sub), { recursive: true });
