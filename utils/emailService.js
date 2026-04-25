@@ -180,6 +180,38 @@ export async function sendOrderConfirmation(user, order) {
   });
 }
 
+export async function sendPaymentStatusUserEmail(user, order, paymentStatus) {
+  const base = getStorefrontUrl();
+  const trackUrl = `${base}/order/${order._id}`;
+  const orderShort = String(order._id).slice(-8);
+  const isPaid = String(paymentStatus || "").toLowerCase() === "paid";
+  const title = isPaid ? "Payment successful" : "Payment failed";
+  const message = isPaid
+    ? "Your online payment was received successfully."
+    : "We could not complete your payment. You can retry payment from your account/orders.";
+  const html = layout({
+    title,
+    bodyHtml: `
+      <p style="margin:0 0 16px;font-weight:700;font-size:18px;color:${brandDark};">${title}</p>
+      <p style="margin:0 0 10px;">Order <strong>#${orderShort}</strong></p>
+      <p style="margin:0 0 10px;"><strong>Payment method</strong> ${escapeHtml(order.paymentMethod || "—")}</p>
+      <p style="margin:0 0 20px;"><strong>Status</strong> <span style="color:${isPaid ? brandGreen : "#dc2626"};font-weight:700;">${escapeHtml(
+        String(paymentStatus || "").toUpperCase()
+      )}</span></p>
+      <p style="margin:0 0 24px;">${escapeHtml(message)}</p>
+      <p style="margin:0;text-align:center;">
+        <a href="${trackUrl}" style="display:inline-block;background:${brandGreen};color:#fff;text-decoration:none;padding:14px 28px;border-radius:12px;font-weight:700;font-size:15px;">View order</a>
+      </p>
+    `,
+  });
+  await sendMailSafe({
+    to: user.email,
+    subject: `Eyelens payment ${isPaid ? "successful" : "failed"} — #${orderShort}`,
+    html,
+    text: `Order #${orderShort} payment is ${paymentStatus}. View order: ${trackUrl}`,
+  });
+}
+
 const statusLabels = {
   pending: "Pending",
   confirmed: "Confirmed",
@@ -256,5 +288,25 @@ export async function sendReturnStatusUserEmail(user, order, returnStatus) {
     to: user.email,
     subject: `Eyelens return ${label} — #${String(order._id).slice(-8)}`,
     html,
+  });
+}
+
+export async function sendNewsletterWelcomeEmail(email) {
+  const base = getStorefrontUrl();
+  const html = layout({
+    title: "Subscribed to Eyelens",
+    bodyHtml: `
+      <p style="margin:0 0 16px;font-weight:700;font-size:18px;color:${brandDark};">You are subscribed!</p>
+      <p style="margin:0 0 20px;">Thanks for subscribing to Eyelens updates. We will share new arrivals, deals, and restock alerts.</p>
+      <p style="margin:0;text-align:center;">
+        <a href="${base}/plp" style="display:inline-block;background:${brandGreen};color:#fff;text-decoration:none;padding:14px 28px;border-radius:12px;font-weight:700;font-size:15px;">Browse frames</a>
+      </p>
+    `,
+  });
+  await sendMailSafe({
+    to: email,
+    subject: "You are subscribed to Eyelens",
+    html,
+    text: `Thanks for subscribing to Eyelens. Browse frames: ${base}/plp`,
   });
 }

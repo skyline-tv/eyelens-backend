@@ -11,7 +11,6 @@ import compression from "compression";
 import mongoSanitize from "express-mongo-sanitize";
 import { connectDB } from "./config/db.js";
 import { validateProductionEnv } from "./config/validateEnv.js";
-import { ensureDefaultBannersOnStartup } from "./config/ensureDefaultBanners.js";
 import authRoutes from "./routes/authRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
 import productRoutes from "./routes/productRoutes.js";
@@ -166,7 +165,6 @@ async function start() {
   try {
     validateProductionEnv();
     await connectDB();
-    await ensureDefaultBannersOnStartup();
     app.listen(PORT, () => {
       console.log(`Server listening on http://localhost:${PORT}`);
     });

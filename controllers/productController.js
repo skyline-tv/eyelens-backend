@@ -16,17 +16,24 @@ function normalizeImageList(value) {
   return [...new Set(value.map((x) => String(x || "").trim()).filter(Boolean))].slice(0, 20);
 }
 
+function normalizeColorName(value) {
+  return String(value || "")
+    .trim()
+    .replace(/^(color|colour)\s*[—\-:]\s*/i, "")
+    .trim();
+}
+
 function normalizeColors(value) {
   if (!Array.isArray(value)) return [];
   return value
     .map((entry) => {
       if (!entry) return null;
       if (typeof entry === "string") {
-        const name = String(entry).trim();
+        const name = normalizeColorName(entry);
         if (!name) return null;
         return { name, hex: "", images: [] };
       }
-      const name = String(entry.name || "").trim();
+      const name = normalizeColorName(entry.name);
       if (!name) return null;
       const hex = String(entry.hex || "").trim();
       const images = normalizeImageList(entry.images);

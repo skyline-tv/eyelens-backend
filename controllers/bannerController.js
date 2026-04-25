@@ -1,8 +1,6 @@
 import mongoose from "mongoose";
 import Banner from "../models/Banner.js";
-import { DEFAULT_HERO_SLIDES } from "../config/defaultHeroBanners.js";
 import { getCachedBanners, setCachedBanners, invalidateBannersCache } from "../utils/apiCache.js";
-import { isHomeCategoryPlacement } from "../utils/bannerPlacement.js";
 
 /** Public: active banners sorted by order */
 export async function listPublicBanners(req, res, next) {
@@ -64,27 +62,3 @@ export async function deleteBanner(req, res, next) {
   }
 }
 
-async function activeHeroCarouselExists() {
-  const rows = await Banner.find({ isActive: true }).select("placement").lean();
-  return rows.some((b) => !isHomeCategoryPlacement(b?.placement));
-}
-
-/** Admin: create sample hero slides if the store has no active carousel banners (e.g. only category tiles). */
-export async function seedDefaultHeroBanners(req, res, next) {
-  try {
-    if (await activeHeroCarouselExists()) {
-      return res.json({
-        success: true,
-        data: { created: 0, message: "Hero carousel already has at least one active slide." },
-      });
-    }
-    const created = await Banner.insertMany(DEFAULT_HERO_SLIDES);
-    invalidateBannersCache();
-    res.status(201).json({
-      success: true,
-      data: { created: created.length, message: "Sample hero slides added. Edit them below." },
-    });
-  } catch (err) {
-    next(err);
-  }
-}

@@ -41,3 +41,37 @@ See `.env.example` for optional keys (Razorpay, SMTP, Cloudinary).
 ## Docs
 
 - Manual QA: [TESTING_GUIDE.md](./TESTING_GUIDE.md)
+
+## Email notifications
+
+When SMTP is configured, Eyelens sends transactional emails for:
+- Welcome email on signup
+- Password reset email
+- Order confirmation
+- Order status updates (confirmed/shipped/delivered/cancelled)
+- Payment status updates (paid/failed for Razorpay)
+- Return request/admin update emails
+- Newsletter subscription confirmation
+
+Required SMTP env vars:
+- `SMTP_HOST`
+- `SMTP_PORT`
+- `SMTP_USER`
+- `SMTP_PASS`
+
+Optional:
+- `SMTP_FROM` (defaults to `SMTP_USER`)
+- `ADMIN_EMAIL` for admin-facing notifications (defaults to `SMTP_USER`)
+
+### Using Resend
+
+This backend already works with Resend via SMTP (no code changes needed). Set:
+- `SMTP_HOST=smtp.resend.com`
+- `SMTP_PORT=465` (or `587`)
+- `SMTP_USER=resend`
+- `SMTP_PASS=<your_resend_smtp_api_key>`
+- `SMTP_FROM=<verified_sender@yourdomain.com>`
+
+Notes:
+- Verify your sending domain/sender in Resend first.
+- Keep `SMTP_FROM` on your verified domain for best deliverability.

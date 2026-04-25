@@ -1,4 +1,5 @@
 import Newsletter from "../models/Newsletter.js";
+import { sendNewsletterWelcomeEmail } from "../utils/emailService.js";
 
 function isValidEmail(email) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -20,6 +21,7 @@ export async function subscribeNewsletter(req, res, next) {
     }
 
     await Newsletter.create({ email, subscribedAt: new Date(), isActive: true });
+    sendNewsletterWelcomeEmail(email).catch(() => {});
     res.status(201).json({ success: true, message: "Successfully subscribed!", data: null });
   } catch (err) {
     next(err);

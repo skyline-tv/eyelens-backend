@@ -1,6 +1,8 @@
 import crypto from "crypto";
 import Razorpay from "razorpay";
 import Order from "../models/Order.js";
+import User from "../models/User.js";
+import { sendPaymentStatusUserEmail } from "../utils/emailService.js";
 
 function getRazorpay() {
   const key_id = process.env.RAZORPAY_KEY_ID;
@@ -133,6 +135,14 @@ export async function verifyRazorpayPayment(req, res, next) {
     order.paymentId = razorpay_payment_id;
     await order.save();
 
+    User.findById(order.user)
+      .select("name email")
+      .lean()
+      .then((buyer) => {
+        if (buyer?.email) sendPaymentStatusUserEmail(buyer, order, "paid").catch(() => {});
+      })
+      .catch(() => {});
+
     res.json({ success: true, message: "Payment verified", data: { orderId: order._id } });
   } catch (err) {
     next(err);
@@ -172,6 +182,14 @@ export async function markRazorpayPaymentFailed(req, res, next) {
 
     order.paymentStatus = "failed";
     await order.save();
+
+    User.findById(order.user)
+      .select("name email")
+      .lean()
+      .then((buyer) => {
+        if (buyer?.email) sendPaymentStatusUserEmail(buyer, order, "failed").catch(() => {});
+      })
+      .catch(() => {});
 
     res.json({ success: true, message: "Payment marked failed", data: { orderId: order._id } });
   } catch (err) {
