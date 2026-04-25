@@ -20,6 +20,71 @@ export function getPaymentsConfig(req, res) {
 }
 
 /**
+ * POST /api/create-order
+ * Body: { amount, currency, receipt }
+ * Standard Razorpay checkout helper endpoint.
+ */
+export async function createStandardRazorpayOrder(req, res, next) {
+  try {
+    const rz = getRazorpay();
+    if (!rz) {
+      return res.status(401).json({ success: false, message: "Razorpay credentials not configured", data: null });
+    }
+    const amount = Number(req.body?.amount);
+    const currency = String(req.body?.currency || "INR").toUpperCase();
+    const receipt = String(req.body?.receipt || `rcpt_${Date.now()}`).slice(0, 40);
+    if (!Number.isFinite(amount) || amount < 100) {
+      return res.status(400).json({ success: false, message: "Amount must be at least 100 paise", data: null });
+    }
+    if (currency !== "INR") {
+      return res.status(400).json({ success: false, message: "Only INR is supported", data: null });
+    }
+
+    const rzpOrder = await rz.orders.create({ amount: Math.round(amount), currency, receipt });
+    return res.json({
+      success: true,
+      order_id: rzpOrder.id,
+      amount: rzpOrder.amount,
+      currency: rzpOrder.currency,
+      key_id: process.env.RAZORPAY_KEY_ID,
+      data: {
+        order_id: rzpOrder.id,
+        amount: rzpOrder.amount,
+        currency: rzpOrder.currency,
+        key_id: process.env.RAZORPAY_KEY_ID,
+      },
+    });
+  } catch (err) {
+    if (err?.statusCode === 401) {
+      return res.status(401).json({ success: false, message: "Razorpay authentication failed", data: null });
+    }
+    return res.status(500).json({ success: false, message: "Could not create Razorpay order", data: null });
+  }
+}
+
+/**
+ * POST /api/verify-payment
+ * Body: { razorpay_order_id, razorpay_payment_id, razorpay_signature }
+ * Standard Razorpay signature verification endpoint.
+ */
+export function verifyStandardRazorpayPayment(req, res) {
+  const secret = process.env.RAZORPAY_KEY_SECRET;
+  if (!secret) {
+    return res.status(401).json({ success: false, message: "Razorpay credentials not configured", data: null });
+  }
+  const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body || {};
+  if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+    return res.status(400).json({ success: false, message: "Missing payment verification fields", data: null });
+  }
+  const body = `${razorpay_order_id}|${razorpay_payment_id}`;
+  const expected = crypto.createHmac("sha256", secret).update(body).digest("hex");
+  if (expected !== razorpay_signature) {
+    return res.status(400).json({ success: false, message: "Invalid payment signature", data: null });
+  }
+  return res.json({ success: true, message: "Payment verified", data: { paid: true } });
+}
+
+/**
  * POST /api/payments/create-order
  * Body: { orderId } — Eyelens order _id; amount taken from stored order total.
  */

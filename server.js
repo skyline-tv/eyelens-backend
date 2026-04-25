@@ -21,6 +21,10 @@ import bannerRoutes from "./routes/bannerRoutes.js";
 import uploadRoutes from "./routes/uploadRoutes.js";
 import paymentRoutes from "./routes/paymentRoutes.js";
 import newsletterRoutes from "./routes/newsletterRoutes.js";
+import {
+  createStandardRazorpayOrder,
+  verifyStandardRazorpayPayment,
+} from "./controllers/paymentController.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 import { apiGeneralLimiter } from "./middleware/rateLimiters.js";
 import { getHealthReport } from "./utils/healthReport.js";
@@ -153,6 +157,8 @@ app.use("/api/coupons", couponRoutes);
 app.use("/api/banners", bannerRoutes);
 app.use("/api/upload", uploadRoutes);
 app.use("/api/payments", paymentRoutes);
+app.post("/api/create-order", createStandardRazorpayOrder);
+app.post("/api/verify-payment", verifyStandardRazorpayPayment);
 app.use("/api/newsletter", newsletterRoutes);
 
 app.use((req, res) => {
