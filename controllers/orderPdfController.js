@@ -123,10 +123,8 @@ export async function streamOrderInvoice(req, res, next) {
     const summaryW = 250;
     const sx = right - summaryW;
     const summaryRows = [
-      ["Subtotal", money(order.itemsSubtotal ?? order.totalAmount)],
-      ["Shipping", money(order.shippingAmount ?? 0)],
+      ["Items subtotal", money(order.itemsSubtotal ?? order.totalAmount)],
       ...(Number(order.discountAmount || 0) > 0 ? [["Discount", `- ${money(order.discountAmount)}`]] : []),
-      ["GST (18%)", money(order.gstAmount ?? 0)],
     ];
     let sy = summaryTop;
     summaryRows.forEach(([label, value]) => {

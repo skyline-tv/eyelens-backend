@@ -172,10 +172,10 @@ export async function createOrder(req, res, next) {
       }
     }
 
-    const shippingAmount = itemsSubtotal > 999 ? 0 : 99;
-    const taxable = Math.max(0, itemsSubtotal + shippingAmount - discountAmount);
-    const gstAmount = Math.round(taxable * 0.18 * 100) / 100;
-    const totalAmount = Math.round((taxable + gstAmount) * 100) / 100;
+    /** Final amount = product lines only (no shipping, no GST). Coupon discount still applies. */
+    const shippingAmount = 0;
+    const gstAmount = 0;
+    const totalAmount = Math.round(Math.max(0, itemsSubtotal - discountAmount) * 100) / 100;
 
     const orderPayload = {
       items: lineItems,
