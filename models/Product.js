@@ -32,6 +32,9 @@ const productSchema = new mongoose.Schema(
     description: { type: String, default: "" },
     frameType: { type: String, default: "" },
     material: { type: String, default: "" },
+    warranty: { type: String, default: "1 Year Full" },
+    deliveryPrimary: { type: String, default: "Free delivery by Saturday" },
+    deliverySecondary: { type: String, default: "Order before 6 PM today" },
     gender: {
       type: String,
       enum: ["unisex", "men", "women", "kids"],

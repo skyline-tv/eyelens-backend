@@ -1,13 +1,12 @@
 /** Lens add-ons allowed by storefront PDP (rupees). */
-export const ALLOWED_LENS_ADDONS = new Set([0, 799, 999, 1999]);
+export const ALLOWED_LENS_ADDONS = new Set([0, 499, 999, 1599]);
 
-/** PDP lens plan ids → price (must match PDP lensPlans). */
+/** PDP lens option ids → price (must match storefront lensOptions). */
 export const LENS_ID_TO_PRICE = {
-  basic: 0,
-  computer_free: 0,
-  bluecut: 799,
-  antiglare: 999,
-  progressive: 1999,
+  "screenguard-single": 0,
+  "ultrachrome-single": 499,
+  "screenguard-progressive": 999,
+  "ultrachrome-progressive": 1599,
 };
 
 function trimStr(s, max) {
