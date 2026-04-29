@@ -6,7 +6,13 @@ import { fileURLToPath } from "url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const uploadsRoot = path.join(__dirname, "..", "uploads");
 
-const MAX_BYTES = 5 * 1024 * 1024;
+const DEFAULT_PRODUCT_UPLOAD_MB = 10;
+const parsedProductUploadMb = Number(process.env.PRODUCT_UPLOAD_MAX_MB);
+const PRODUCT_UPLOAD_MAX_MB =
+  Number.isFinite(parsedProductUploadMb) && parsedProductUploadMb > 0
+    ? parsedProductUploadMb
+    : DEFAULT_PRODUCT_UPLOAD_MB;
+const MAX_BYTES = Math.floor(PRODUCT_UPLOAD_MAX_MB * 1024 * 1024);
 const ALLOWED = new Set(["image/jpeg", "image/png", "image/webp"]);
 const REVIEW_MAX_BYTES = 2 * 1024 * 1024;
 const ALLOWED_REVIEW = new Set(["image/jpeg", "image/png"]);

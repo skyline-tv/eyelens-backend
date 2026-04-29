@@ -18,6 +18,7 @@ Express + MongoDB backend for the Eyelens storefront and admin apps (separate re
 | `JWT_SECRET` | Long random string (min 16 chars; use 32+ in production) |
 | `REFRESH_TOKEN_SECRET` | Another long random string |
 | `CLIENT_URLS` | Comma-separated browser origins (store + admin), e.g. `http://localhost:3000,http://localhost:3001` |
+| `PRODUCT_UPLOAD_MAX_MB` | Max product image upload size in MB (optional, default `10`) |
 
 See `.env.example` for optional keys (Razorpay, SMTP, Cloudinary).
 
@@ -35,6 +36,7 @@ See `.env.example` for optional keys (Razorpay, SMTP, Cloudinary).
 
 - **Docker:** `docker compose -f docker-compose.prod.yml up -d --build` (from this directory). Set `MONGO_URI=mongodb://mongo:27017/eyelens` in `.env` when using the bundled Mongo service.
 - **nginx:** See `deploy/nginx.example.conf` for reverse-proxying `/api/` and TLS.
+- **Upload limits:** Ensure nginx `client_max_body_size` is >= `PRODUCT_UPLOAD_MAX_MB`.
 - **CORS:** Client `Origin` must match an entry in `CLIENT_URLS` in production.
 - **HSTS:** Enabled in production via Helmet.
 

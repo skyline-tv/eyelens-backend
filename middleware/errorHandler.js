@@ -39,7 +39,14 @@ export function errorHandler(err, req, res, next) {
 
   if (err instanceof multer.MulterError) {
     if (err.code === "LIMIT_FILE_SIZE") {
-      return res.status(400).json({ success: false, message: "Image must be 5MB or smaller", data: null });
+      const defaultMb = 10;
+      const parsedMb = Number(process.env.PRODUCT_UPLOAD_MAX_MB);
+      const maxMb = Number.isFinite(parsedMb) && parsedMb > 0 ? parsedMb : defaultMb;
+      return res.status(400).json({
+        success: false,
+        message: `Image must be ${maxMb}MB or smaller`,
+        data: null,
+      });
     }
     return res.status(400).json({ success: false, message: err.message || "Upload error", data: null });
   }
