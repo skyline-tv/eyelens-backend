@@ -31,6 +31,7 @@ const productSchema = new mongoose.Schema(
     /** Reserved for future cart-hold flows */
     reserved: { type: Number, default: 0, min: 0 },
     description: { type: String, default: "" },
+    productHighlights: { type: String, default: "" },
     modelNumber: { type: String, default: "", trim: true },
     frameType: { type: String, default: "" },
     material: { type: String, default: "" },

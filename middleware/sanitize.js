@@ -12,6 +12,7 @@ export function sanitizeProductBody(req, res, next) {
   if (req.body && typeof req.body === "object") {
     if (req.body.name != null) req.body.name = stripHtmlText(req.body.name);
     if (req.body.description != null) req.body.description = stripHtmlText(req.body.description);
+    if (req.body.productHighlights != null) req.body.productHighlights = stripHtmlText(req.body.productHighlights);
     if (req.body.brand != null) req.body.brand = stripHtmlText(req.body.brand);
     if (Array.isArray(req.body.images)) {
       req.body.images = req.body.images.map((img) => stripHtmlText(img)).filter(Boolean);
