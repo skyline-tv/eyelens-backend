@@ -9,6 +9,7 @@
     "start": "node server.js",
     "test": "node --test test/shippingAddress.test.mjs",
     "export:data": "node scripts/exportData.js",
+    "clear:data:keep-login": "node scripts/clearDataKeepUsers.js",
     "seed": "npm run seed:admin && npm run seed:products && npm run seed:customer && npm run seed:coupon",
     "seed:admin": "node scripts/seedAdmin.js",
     "seed:products": "node scripts/seedProducts.mjs",

@@ -16,6 +16,8 @@ import {
   buildFrameOptionsSnapshot,
 } from "../utils/orderLineMeta.js";
 
+const CHECKOUT_DISABLED = true;
+
 function couponErrorMessage(code) {
   const map = {
     INVALID_COUPON: "Invalid coupon code",
@@ -112,6 +114,13 @@ async function deductStockAndCreateOrder({ userId, lineItems, orderPayload }) {
 
 export async function createOrder(req, res, next) {
   try {
+    if (CHECKOUT_DISABLED) {
+      return res.status(503).json({
+        success: false,
+        message:
+          "Checkout is temporarily paused while we tighten payment and delivery verification safeguards. Please try again later.",
+      });
+    }
     const { items, shippingAddress, paymentMethod: rawPm, couponCode: rawCoupon } = req.body;
     if (!items?.length || !shippingAddress || !rawPm) {
       return res.status(400).json({ success: false, message: "items, shippingAddress, paymentMethod required" });

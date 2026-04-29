@@ -1,6 +1,7 @@
 import Order from "../models/Order.js";
 import Product from "../models/Product.js";
 import User from "../models/User.js";
+import mongoose from "mongoose";
 
 function startOfToday() {
   const d = new Date();
@@ -228,6 +229,34 @@ export async function dashboardStats(req, res, next) {
         /** @deprecated use outOfStockCount */
         zeroStockCount: outOfStockCount,
       },
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/** Admin action: clear all app data except login users. */
+export async function resetDataKeepLogin(req, res, next) {
+  try {
+    const keepCollections = new Set(["users", "system.indexes", "system.profile"]);
+    const collections = Object.keys(mongoose.connection.collections || {});
+
+    const cleared = [];
+    const kept = [];
+
+    for (const name of collections) {
+      if (keepCollections.has(name)) {
+        kept.push(name);
+        continue;
+      }
+      await mongoose.connection.collection(name).deleteMany({});
+      cleared.push(name);
+    }
+
+    res.json({
+      success: true,
+      message: "Data reset complete. Login data was preserved.",
+      data: { keptCollections: kept, clearedCollections: cleared },
     });
   } catch (err) {
     next(err);
