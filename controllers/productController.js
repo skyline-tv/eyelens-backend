@@ -36,8 +36,11 @@ function normalizeColors(value) {
       const name = normalizeColorName(entry.name);
       if (!name) return null;
       const hex = String(entry.hex || "").trim();
+      const rawStock = entry.stock;
+      const parsedStock = rawStock === "" || rawStock == null ? null : Number(rawStock);
+      const stock = Number.isFinite(parsedStock) && parsedStock >= 0 ? Math.floor(parsedStock) : null;
       const images = normalizeImageList(entry.images);
-      return { name, hex, images };
+      return { name, hex, stock, images };
     })
     .filter(Boolean)
     .slice(0, 20);

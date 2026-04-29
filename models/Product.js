@@ -22,6 +22,7 @@ const productSchema = new mongoose.Schema(
       {
         name: { type: String, trim: true, default: "" },
         hex: { type: String, trim: true, default: "" },
+        stock: { type: Number, default: null, min: 0 },
         images: [{ type: String }],
       },
     ],
@@ -30,6 +31,7 @@ const productSchema = new mongoose.Schema(
     /** Reserved for future cart-hold flows */
     reserved: { type: Number, default: 0, min: 0 },
     description: { type: String, default: "" },
+    modelNumber: { type: String, default: "", trim: true },
     frameType: { type: String, default: "" },
     material: { type: String, default: "" },
     warranty: { type: String, default: "1 Year Full" },

@@ -23,6 +23,7 @@ export function sanitizeProductBody(req, res, next) {
           ...color,
           name: color.name != null ? stripHtmlText(color.name) : "",
           hex: color.hex != null ? stripHtmlText(color.hex) : "",
+          stock: color.stock,
           images: Array.isArray(color.images)
             ? color.images.map((img) => stripHtmlText(img)).filter(Boolean)
             : [],

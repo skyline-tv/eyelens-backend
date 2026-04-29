@@ -34,7 +34,15 @@ function couponErrorMessage(code) {
 async function rollbackOrderAndStock(orderId, lineItems) {
   await Order.findByIdAndDelete(orderId);
   for (const li of lineItems) {
-    await Product.updateOne({ _id: li.product }, { $inc: { stock: li.qty } });
+    const colorName = String(li.color || "").trim();
+    if (colorName) {
+      await Product.updateOne(
+        { _id: li.product, "colors.name": colorName },
+        { $inc: { stock: li.qty, "colors.$.stock": li.qty } }
+      );
+    } else {
+      await Product.updateOne({ _id: li.product }, { $inc: { stock: li.qty } });
+    }
   }
 }
 
@@ -49,11 +57,15 @@ async function deductStockAndCreateOrder({ userId, lineItems, orderPayload }) {
       let createdId;
       await session.withTransaction(async () => {
         for (const li of lineItems) {
-          const updated = await Product.findOneAndUpdate(
-            { _id: li.product, stock: { $gte: li.qty } },
-            { $inc: { stock: -li.qty } },
-            { new: true, session }
-          );
+          const colorName = String(li.color || "").trim();
+          const filter = colorName
+            ? { _id: li.product, stock: { $gte: li.qty }, colors: { $elemMatch: { name: colorName, stock: { $gte: li.qty } } } }
+            : { _id: li.product, stock: { $gte: li.qty } };
+          const update = colorName ? { $inc: { stock: -li.qty, "colors.$[picked].stock": -li.qty } } : { $inc: { stock: -li.qty } };
+          const options = colorName
+            ? { new: true, session, arrayFilters: [{ "picked.name": colorName }] }
+            : { new: true, session };
+          const updated = await Product.findOneAndUpdate(filter, update, options);
           if (!updated) {
             throw new Error(`INSUFFICIENT_STOCK:${li.name}`);
           }
@@ -71,24 +83,42 @@ async function deductStockAndCreateOrder({ userId, lineItems, orderPayload }) {
     const rolled = [];
     try {
       for (const li of lineItems) {
-        const updated = await Product.findOneAndUpdate(
-          { _id: li.product, stock: { $gte: li.qty } },
-          { $inc: { stock: -li.qty } },
-          { new: true }
-        );
+        const colorName = String(li.color || "").trim();
+        const filter = colorName
+          ? { _id: li.product, stock: { $gte: li.qty }, colors: { $elemMatch: { name: colorName, stock: { $gte: li.qty } } } }
+          : { _id: li.product, stock: { $gte: li.qty } };
+        const update = colorName ? { $inc: { stock: -li.qty, "colors.$[picked].stock": -li.qty } } : { $inc: { stock: -li.qty } };
+        const options = colorName ? { new: true, arrayFilters: [{ "picked.name": colorName }] } : { new: true };
+        const updated = await Product.findOneAndUpdate(filter, update, options);
         if (!updated) {
           for (const r of rolled) {
-            await Product.updateOne({ _id: r.product }, { $inc: { stock: r.qty } });
+            const rolledColor = String(r.color || "").trim();
+            if (rolledColor) {
+              await Product.updateOne(
+                { _id: r.product, "colors.name": rolledColor },
+                { $inc: { stock: r.qty, "colors.$.stock": r.qty } }
+              );
+            } else {
+              await Product.updateOne({ _id: r.product }, { $inc: { stock: r.qty } });
+            }
           }
           throw new Error(`INSUFFICIENT_STOCK:${li.name}`);
         }
-        rolled.push({ product: li.product, qty: li.qty });
+        rolled.push({ product: li.product, qty: li.qty, color: colorName });
       }
       const doc = await Order.create({ ...orderPayload, user: userId });
       return doc._id;
     } catch (e) {
       for (const r of rolled) {
-        await Product.updateOne({ _id: r.product }, { $inc: { stock: r.qty } });
+        const rolledColor = String(r.color || "").trim();
+        if (rolledColor) {
+          await Product.updateOne(
+            { _id: r.product, "colors.name": rolledColor },
+            { $inc: { stock: r.qty, "colors.$.stock": r.qty } }
+          );
+        } else {
+          await Product.updateOne({ _id: r.product }, { $inc: { stock: r.qty } });
+        }
       }
       throw e;
     }
@@ -161,7 +191,9 @@ export async function createOrder(req, res, next) {
       if (lensSnap) row.lens = lensSnap;
       if (rxSnap) row.prescription = rxSnap;
       if (frameSnap) row.frameOptions = frameSnap;
+      const colorName = String(frameSnap?.color || "").trim();
       lineItems.push(row);
+      lineItems[lineItems.length - 1].color = colorName;
     }
 
     const itemsSubtotal = Math.round(total * 100) / 100;
