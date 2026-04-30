@@ -27,6 +27,8 @@ function couponErrorMessage(code) {
     "Coupon usage limit reached": "Coupon is no longer available",
     "Coupon is not active": "Coupon is not active",
     "Coupon has expired": "Coupon has expired",
+    FIRST_ORDER_ONLY: "Coupon is for first order only",
+    ONE_TIME_PER_USER: "Coupon can be used only once per account",
   };
   return map[code] || code || "Coupon error";
 }
@@ -163,6 +165,7 @@ export async function createOrder(req, res, next) {
     }
 
     const lineItems = [];
+    const couponEvalItems = [];
     const unavailableMsg = "Some items in your cart are no longer available. Please review your cart.";
     let total = 0;
 
@@ -177,6 +180,11 @@ export async function createOrder(req, res, next) {
       const lensAddon = resolveLensAddon(line);
       const price = Math.round((product.price + lensAddon) * 100) / 100;
       total += price * qty;
+      couponEvalItems.push({
+        qty,
+        framePrice: Number(product.price) || 0,
+        lensPrice: Number(lensAddon) || 0,
+      });
       const lensSnap = buildLensSnapshot(line, lensAddon);
       const rxSnap = buildPrescriptionSnapshot(line.prescription);
       const frameSnap = buildFrameOptionsSnapshot(line.frameOptions);
@@ -202,7 +210,11 @@ export async function createOrder(req, res, next) {
 
     if (rawCoupon && String(rawCoupon).trim()) {
       try {
-        const peek = await peekCouponDiscount(String(rawCoupon).trim(), itemsSubtotal);
+        const peek = await peekCouponDiscount(String(rawCoupon).trim(), {
+          subtotal: itemsSubtotal,
+          items: couponEvalItems,
+          userId: req.user.id,
+        });
         discountAmount = peek.discountAmount;
         couponCode = peek.coupon?.code || "";
       } catch (e) {
@@ -252,7 +264,11 @@ export async function createOrder(req, res, next) {
 
     if (rawCoupon && String(rawCoupon).trim()) {
       try {
-        await consumeCouponIfValid(String(rawCoupon).trim(), itemsSubtotal);
+        await consumeCouponIfValid(String(rawCoupon).trim(), {
+          subtotal: itemsSubtotal,
+          items: couponEvalItems,
+          userId: req.user.id,
+        });
       } catch (e) {
         await rollbackOrderAndStock(orderId, lineItems);
         return res.status(400).json({

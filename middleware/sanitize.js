@@ -75,8 +75,16 @@ export function sanitizePrescriptionBody(req, res, next) {
 
 /** POST/PUT coupon */
 export function sanitizeCouponBody(req, res, next) {
-  if (req.body && req.body.code != null) {
-    req.body.code = stripHtmlText(req.body.code).toUpperCase();
+  if (req.body && typeof req.body === "object") {
+    if (req.body.code != null) req.body.code = stripHtmlText(req.body.code).toUpperCase();
+    if (req.body.label != null) req.body.label = stripHtmlText(req.body.label);
+    if (req.body.discountType != null) req.body.discountType = stripHtmlText(req.body.discountType).toLowerCase();
+    if (req.body.maxUses === "") req.body.maxUses = null;
+    if (req.body.expiresAt === "") req.body.expiresAt = null;
+    if ("oneTimePerUser" in req.body) req.body.oneTimePerUser = Boolean(req.body.oneTimePerUser);
+    if ("newUsersOnly" in req.body) req.body.newUsersOnly = Boolean(req.body.newUsersOnly);
+    if ("frameOnlyDiscount" in req.body) req.body.frameOnlyDiscount = Boolean(req.body.frameOnlyDiscount);
+    if ("bogoEnabled" in req.body) req.body.bogoEnabled = Boolean(req.body.bogoEnabled);
   }
   next();
 }

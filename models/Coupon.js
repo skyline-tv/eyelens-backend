@@ -11,6 +11,16 @@ const couponSchema = new mongoose.Schema(
     minOrderValue: { type: Number, default: 0, min: 0 },
     maxUses: { type: Number, default: null },
     usedCount: { type: Number, default: 0, min: 0 },
+    /** Optional per-user one-time usage lock */
+    oneTimePerUser: { type: Boolean, default: false },
+    /** Restrict coupon to a user's first successful order */
+    newUsersOnly: { type: Boolean, default: false },
+    /** If true, discount applies only on frame subtotal (ignores lens add-ons) */
+    frameOnlyDiscount: { type: Boolean, default: false },
+    /** Buy 1 Get 1 on frames: free cheapest eligible frame(s) in cart */
+    bogoEnabled: { type: Boolean, default: false },
+    /** Tracks users who have consumed this coupon (for oneTimePerUser) */
+    usedByUsers: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
     expiresAt: { type: Date, default: null },
     isActive: { type: Boolean, default: true },
   },
