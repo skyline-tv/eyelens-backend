@@ -81,3 +81,12 @@ export const orderCreateLimiter = rateLimit({
   legacyHeaders: false,
   message: { success: false, message: "Too many order attempts. Please try again later.", data: null },
 });
+
+/** Storefront analytics beacons (cart/checkout). */
+export const analyticsTrackLimiter = rateLimit({
+  windowMs: M15,
+  max: 120,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: "Too many analytics requests. Please try again later.", data: null },
+});

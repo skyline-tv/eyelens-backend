@@ -315,6 +315,19 @@ async function main() {
       Array.isArray(dash.body.data.topSellingProducts);
     record("GET /api/stats/dashboard → KPIs load correctly", dashOk);
 
+    const funnelGet = await req("GET", "/stats/funnel?period=7d", { token: adminToken });
+    const funnelOk =
+      funnelGet.res.ok &&
+      funnelGet.body?.data &&
+      typeof funnelGet.body.data.uniqueCartVisitors === "number" &&
+      typeof funnelGet.body.data.uniqueCheckoutVisitors === "number";
+    record("GET /api/stats/funnel → checkout funnel metrics", funnelOk);
+
+    const trackEv = await req("POST", "/stats/track-event", {
+      json: { event: "cart_view", visitorId: "e2e-analytics-visitor-01" },
+    });
+    record("POST /api/stats/track-event → storefront beacon", trackEv.res.ok);
+
     // —— BANNERS ——
     const ban = await req("POST", "/banners", {
       token: adminToken,
