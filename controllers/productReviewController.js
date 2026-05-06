@@ -122,3 +122,52 @@ export async function addProductReview(req, res, next) {
     next(err);
   }
 }
+
+/** POST /api/products/:id/reviews/import — admin: import real client reviews */
+export async function importProductReviewsAdmin(req, res, next) {
+  try {
+    const { id } = req.params;
+    if (!mongoose.isValidObjectId(id)) {
+      return res.status(400).json({ success: false, message: "Invalid product id" });
+    }
+    const list = Array.isArray(req.body?.reviews) ? req.body.reviews : [];
+    if (!list.length) {
+      return res.status(400).json({ success: false, message: "reviews array is required" });
+    }
+    if (list.length > 500) {
+      return res.status(400).json({ success: false, message: "Max 500 reviews per import" });
+    }
+
+    const product = await Product.findById(id);
+    if (!product) return res.status(404).json({ success: false, message: "Product not found" });
+
+    const sanitized = list
+      .map((r) => {
+        const rating = Number(r?.rating);
+        if (!Number.isInteger(rating) || rating < 1 || rating > 5) return null;
+        const comment = String(r?.comment || "").trim().slice(0, 2000);
+        const userName = String(r?.userName || "").trim().slice(0, 120) || "Customer";
+        const imageUrl = sanitizeReviewImageUrl(r?.imageUrl || "");
+        const createdAtRaw = r?.createdAt ? new Date(r.createdAt) : new Date();
+        const createdAt = Number.isNaN(createdAtRaw.getTime()) ? new Date() : createdAtRaw;
+        return { userName, rating, comment, imageUrl, createdAt };
+      })
+      .filter(Boolean);
+
+    if (!sanitized.length) {
+      return res.status(400).json({ success: false, message: "No valid reviews to import" });
+    }
+
+    product.reviews.push(...sanitized);
+    await product.save();
+    await recalcProductRating(id);
+
+    res.status(201).json({
+      success: true,
+      message: "Reviews imported",
+      data: { imported: sanitized.length },
+    });
+  } catch (err) {
+    next(err);
+  }
+}
