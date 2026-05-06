@@ -57,6 +57,49 @@ function normalizeProductPayload(payload) {
   return body;
 }
 
+function slugifyColorName(value, fallback = "") {
+  const s = String(value || fallback)
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
+  return s || "color";
+}
+
+function expandProductsByColor(products) {
+  if (!Array.isArray(products)) return [];
+  return products.flatMap((product) => {
+    const colorList = Array.isArray(product.colors)
+      ? product.colors.filter((c) => c && String(c.name || "").trim())
+      : [];
+    if (!colorList.length) {
+      return [{ ...product, listingId: String(product._id) }];
+    }
+    return colorList.map((color, index) => {
+      const colorName = String(color.name || "").trim();
+      const colorStock =
+        color.stock == null || Number.isNaN(Number(color.stock)) ? null : Math.max(0, Math.floor(Number(color.stock)));
+      const mergedImages =
+        Array.isArray(color.images) && color.images.length ? color.images.filter(Boolean) : product.images || [];
+      return {
+        ...product,
+        listingId: `${String(product._id)}:${slugifyColorName(colorName, String(index + 1))}`,
+        variantOf: String(product._id),
+        variantColor: {
+          name: colorName,
+          hex: String(color.hex || "").trim(),
+        },
+        name: colorName ? `${product.name} - ${colorName}` : product.name,
+        images: mergedImages,
+        stock: colorStock ?? product.stock,
+        outOfStock:
+          Boolean(product.outOfStock) ||
+          (colorStock != null ? colorStock <= 0 : typeof product.stock === "number" && product.stock <= 0),
+      };
+    });
+  });
+}
+
 /** GET /api/products — optional: category, gender, frameType, minPrice, maxPrice, sort, search, brand */
 export async function listProducts(req, res, next) {
   try {
@@ -135,7 +178,7 @@ export async function listProducts(req, res, next) {
     let query = Product.find(filter).sort(sortOpt).select("-reviews");
     if (limit) query = query.limit(limit);
     const products = await query.lean();
-    const payload = { success: true, data: products };
+    const payload = { success: true, data: expandProductsByColor(products) };
     setCachedProducts(cacheKey, payload);
     res.json(payload);
   } catch (err) {
