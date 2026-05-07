@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import Product from "../models/Product.js";
 import Order from "../models/Order.js";
 import User from "../models/User.js";
+import { invalidateProductsCache } from "../utils/apiCache.js";
 import { recalcProductRating } from "../utils/productRating.js";
 import { sanitizeReviewImageUrl } from "../utils/reviewImageUrl.js";
 
@@ -99,6 +100,7 @@ export async function addProductReview(req, res, next) {
     });
     await product.save();
     await recalcProductRating(id);
+    invalidateProductsCache();
 
     const reviewer = await User.findById(uid).select("name").lean();
     const updated = await Product.findById(id)
@@ -161,6 +163,7 @@ export async function importProductReviewsAdmin(req, res, next) {
     product.reviews.push(...sanitized);
     await product.save();
     await recalcProductRating(id);
+    invalidateProductsCache();
 
     res.status(201).json({
       success: true,
