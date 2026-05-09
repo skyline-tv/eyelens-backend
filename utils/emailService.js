@@ -1,4 +1,4 @@
-import nodemailer from "nodemailer";
+import { Resend } from "resend";
 
 /** Public storefront URL for links in emails */
 export function getStorefrontUrl() {
@@ -8,23 +8,18 @@ export function getStorefrontUrl() {
   return raw.replace(/\/$/, "");
 }
 
-function isSmtpConfigured() {
-  return Boolean(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
+function isResendConfigured() {
+  return Boolean(process.env.RESEND_API_KEY && process.env.RESEND_FROM);
 }
 
-/** Lazy transporter — returns null if SMTP not set */
-function getTransporter() {
-  if (!isSmtpConfigured()) return null;
-  const port = Number(process.env.SMTP_PORT) || 587;
-  return nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port,
-    secure: port === 465,
-    auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS,
-    },
-  });
+/** Lazy Resend client — returns null if env not set */
+let resendClient = null;
+function getResendClient() {
+  if (!isResendConfigured()) return null;
+  if (!resendClient) {
+    resendClient = new Resend(process.env.RESEND_API_KEY);
+  }
+  return resendClient;
 }
 
 const brandGreen = "#16a34a";
@@ -69,11 +64,17 @@ function layout({ title, bodyHtml }) {
 }
 
 async function sendMailSafe({ to, subject, html, text }) {
-  const tx = getTransporter();
-  if (!tx) return;
-  const from = process.env.SMTP_FROM || process.env.SMTP_USER;
+  const client = getResendClient();
+  if (!client) return;
+  const from = process.env.RESEND_FROM;
   try {
-    await tx.sendMail({ from, to, subject, html, text: text || subject });
+    await client.emails.send({
+      from,
+      to,
+      subject,
+      html,
+      text: text || subject,
+    });
   } catch (err) {
     console.error("[emailService] send failed:", err?.message || err);
   }
@@ -120,6 +121,35 @@ export async function sendWelcomeEmail(user) {
     subject: "Welcome to Eyelens",
     html,
     text: `Welcome to Eyelens! Shop now: ${base}/`,
+  });
+}
+
+export async function sendLoginAlertEmail(user, meta = {}) {
+  const base = getStorefrontUrl();
+  const name = user?.name || "there";
+  const when = meta.when ? new Date(meta.when) : new Date();
+  const whenLabel = Number.isNaN(when.getTime()) ? new Date().toISOString() : when.toISOString();
+  const ip = String(meta.ip || "Unknown");
+  const userAgent = String(meta.userAgent || "Unknown device/browser");
+  const html = layout({
+    title: "New login alert",
+    bodyHtml: `
+      <p style="margin:0 0 16px;font-weight:700;font-size:18px;color:${brandDark};">New login to your Eyelens account</p>
+      <p style="margin:0 0 16px;">Hi ${escapeHtml(name)}, we noticed a new login.</p>
+      <p style="margin:0 0 6px;"><strong>Time (UTC)</strong> ${escapeHtml(whenLabel)}</p>
+      <p style="margin:0 0 6px;"><strong>IP address</strong> ${escapeHtml(ip)}</p>
+      <p style="margin:0 0 20px;"><strong>Device</strong> ${escapeHtml(userAgent)}</p>
+      <p style="margin:0 0 20px;">If this was you, no action is needed. If not, reset your password immediately.</p>
+      <p style="margin:0;text-align:center;">
+        <a href="${base}/forgot-password" style="display:inline-block;background:${brandGreen};color:#fff;text-decoration:none;padding:14px 28px;border-radius:12px;font-weight:700;font-size:15px;">Reset password</a>
+      </p>
+    `,
+  });
+  await sendMailSafe({
+    to: user.email,
+    subject: "New login alert for your Eyelens account",
+    html,
+    text: `New login detected. Time (UTC): ${whenLabel}. IP: ${ip}. Device: ${userAgent}. If this was not you, reset your password: ${base}/forgot-password`,
   });
 }
 
@@ -250,23 +280,10 @@ export async function sendOrderStatusUpdate(user, order) {
 
 /** Notify admin inbox when a customer requests a return */
 export async function sendReturnRequestAdminEmail(order, buyer, reason) {
-  const adminTo = process.env.ADMIN_EMAIL || process.env.SMTP_USER;
-  if (!adminTo) return;
-  const html = layout({
-    title: "Return request",
-    bodyHtml: `
-      <p style="margin:0 0 16px;font-weight:700;font-size:18px;color:${brandDark};">New return request</p>
-      <p><strong>Order</strong> #${String(order._id).slice(-8)}</p>
-      <p><strong>Customer</strong> ${escapeHtml(buyer?.name || "—")} &lt;${escapeHtml(buyer?.email || "")}&gt;</p>
-      <p><strong>Reason</strong></p>
-      <p style="white-space:pre-wrap;border:1px solid #e5e7eb;border-radius:12px;padding:12px;">${escapeHtml(reason)}</p>
-    `,
-  });
-  await sendMailSafe({
-    to: adminTo,
-    subject: `Return requested — order #${String(order._id).slice(-8)}`,
-    html,
-  });
+  // Admin emails are temporarily disabled.
+  void order;
+  void buyer;
+  void reason;
 }
 
 export async function sendReturnStatusUserEmail(user, order, returnStatus) {

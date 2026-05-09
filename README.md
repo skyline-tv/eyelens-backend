@@ -20,7 +20,7 @@ Express + MongoDB backend for the Eyelens storefront and admin apps (separate re
 | `CLIENT_URLS` | Comma-separated browser origins (store + admin), e.g. `http://localhost:3000,http://localhost:3001` |
 | `PRODUCT_UPLOAD_MAX_MB` | Max product image upload size in MB (optional, default `10`) |
 
-See `.env.example` for optional keys (Razorpay, SMTP, Cloudinary).
+See `.env.example` for optional keys (Razorpay, Resend, Cloudinary).
 
 ## Scripts
 
@@ -46,7 +46,7 @@ See `.env.example` for optional keys (Razorpay, SMTP, Cloudinary).
 
 ## Email notifications
 
-When SMTP is configured, Eyelens sends transactional emails for:
+When Resend is configured, Eyelens sends transactional emails for:
 - Welcome email on signup
 - Password reset email
 - Order confirmation
@@ -55,25 +55,13 @@ When SMTP is configured, Eyelens sends transactional emails for:
 - Return request/admin update emails
 - Newsletter subscription confirmation
 
-Required SMTP env vars:
-- `SMTP_HOST`
-- `SMTP_PORT`
-- `SMTP_USER`
-- `SMTP_PASS`
+Required Resend env vars:
+- `RESEND_API_KEY`
+- `RESEND_FROM` (must be a verified sender/domain in Resend)
 
 Optional:
-- `SMTP_FROM` (defaults to `SMTP_USER`)
-- `ADMIN_EMAIL` for admin-facing notifications (defaults to `SMTP_USER`)
-
-### Using Resend
-
-This backend already works with Resend via SMTP (no code changes needed). Set:
-- `SMTP_HOST=smtp.resend.com`
-- `SMTP_PORT=465` (or `587`)
-- `SMTP_USER=resend`
-- `SMTP_PASS=<your_resend_smtp_api_key>`
-- `SMTP_FROM=<verified_sender@yourdomain.com>`
+- `ADMIN_EMAIL` for admin-facing notifications (defaults to `RESEND_FROM`)
 
 Notes:
 - Verify your sending domain/sender in Resend first.
-- Keep `SMTP_FROM` on your verified domain for best deliverability.
+- Keep `RESEND_FROM` on your verified domain for best deliverability.

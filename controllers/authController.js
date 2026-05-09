@@ -7,7 +7,12 @@ import {
   verifyRefreshToken,
   createJti,
 } from "../utils/jwt.js";
-import { getStorefrontUrl, sendPasswordResetEmail, sendWelcomeEmail } from "../utils/emailService.js";
+import {
+  getStorefrontUrl,
+  sendLoginAlertEmail,
+  sendPasswordResetEmail,
+  sendWelcomeEmail,
+} from "../utils/emailService.js";
 
 const BANNED_LOGIN_MSG = "Your account has been suspended. Contact support for help.";
 
@@ -16,6 +21,17 @@ function hashResetToken(token) {
 }
 
 const COOKIE_NAME = "refreshToken";
+
+function getClientIp(req) {
+  const forwarded = req.headers["x-forwarded-for"];
+  if (typeof forwarded === "string" && forwarded.trim()) {
+    return forwarded.split(",")[0].trim();
+  }
+  if (Array.isArray(forwarded) && forwarded.length) {
+    return String(forwarded[0]).split(",")[0].trim();
+  }
+  return req.ip || req.socket?.remoteAddress || "";
+}
 
 function cookieOptions() {
   const isProd = process.env.NODE_ENV === "production";
@@ -87,6 +103,15 @@ export async function login(req, res, next) {
     const expiresAt = new Date(decoded.exp * 1000);
     user.addRefreshJti(jti, expiresAt);
     await user.save({ validateBeforeSave: false });
+
+    sendLoginAlertEmail(
+      { name: user.name, email: user.email },
+      {
+        when: new Date(),
+        ip: getClientIp(req),
+        userAgent: req.get("user-agent") || "",
+      }
+    ).catch(() => {});
 
     res.cookie(COOKIE_NAME, refreshToken, cookieOptions());
     res.json({
