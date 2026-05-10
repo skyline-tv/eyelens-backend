@@ -79,8 +79,7 @@ function expandProductsByColor(products) {
       const colorName = String(color.name || "").trim();
       const colorStock =
         color.stock == null || Number.isNaN(Number(color.stock)) ? null : Math.max(0, Math.floor(Number(color.stock)));
-      const mergedImages =
-        Array.isArray(color.images) && color.images.length ? color.images.filter(Boolean) : product.images || [];
+      const colorOnlyImages = Array.isArray(color.images) ? color.images.map((x) => String(x || "").trim()).filter(Boolean) : [];
       return {
         ...product,
         listingId: `${String(product._id)}:${slugifyColorName(colorName, String(index + 1))}`,
@@ -90,7 +89,7 @@ function expandProductsByColor(products) {
           hex: String(color.hex || "").trim(),
         },
         name: colorName ? `${product.name} - ${colorName}` : product.name,
-        images: mergedImages,
+        images: colorOnlyImages,
         stock: colorStock ?? product.stock,
         outOfStock:
           Boolean(product.outOfStock) ||
